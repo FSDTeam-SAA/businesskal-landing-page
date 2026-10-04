@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import AccountDialog, { type AccountMode } from "./account-dialog";
+import type { Account } from "./lib/account";
 import {
   useEffect,
   useRef,
@@ -101,51 +103,9 @@ function Icon({
     </svg>
   );
 }
-const categories: {
-  name: string;
-  icon: IconName;
-  detail: string;
-  color: string;
-}[] = [
-  {
-    name: "Fresh produce",
-    icon: "leaf",
-    detail: "Farm to business",
-    color: "green",
-  },
-  {
-    name: "Food & beverages",
-    icon: "coffee",
-    detail: "Stock something good",
-    color: "peach",
-  },
-  {
-    name: "Fashion & textiles",
-    icon: "shirt",
-    detail: "Made for your market",
-    color: "purple",
-  },
-  {
-    name: "Packaging",
-    icon: "box",
-    detail: "A better first impression",
-    color: "sand",
-  },
-  {
-    name: "Business services",
-    icon: "tools",
-    detail: "Expertise that moves you",
-    color: "blue",
-  },
-  {
-    name: "All categories",
-    icon: "globe",
-    detail: "Your next opportunity",
-    color: "pink",
-  },
-];
 type Product = {
-  id: number;
+  id: string;
+  supplierId: string;
   name: string;
   category: string;
   image: string;
@@ -157,96 +117,20 @@ type Product = {
   description: string;
   type: "Products" | "Services";
 };
-const products: Product[] = [
-  {
-    id: 1,
-    name: "Vine-ripened tomatoes",
-    category: "Fresh produce",
-    image: "tomatoes",
-    supplier: "Greenfield Farms",
-    location: "Bangladesh",
-    price: "$2.40",
-    unit: "/ kg",
-    tag: "Farm fresh",
-    description:
-      "Fresh tomatoes for kitchens, retailers, and food businesses. Discuss quantities, seasonal availability, and delivery with your next supplier.",
-    type: "Products",
-  },
-  {
-    id: 2,
-    name: "Fresh Hass avocados",
-    category: "Fresh produce",
-    image: "avocados",
-    supplier: "Harvest Collective",
-    location: "Kenya",
-    price: "$3.80",
-    unit: "/ kg",
-    tag: "Popular pick",
-    description:
-      "Hass avocados for food service and retail. Explore ripeness, packaging, minimum quantities, and shipping options.",
-    type: "Products",
-  },
-  {
-    id: 3,
-    name: "Specialty coffee beans",
-    category: "Food & beverages",
-    image: "coffee",
-    supplier: "Origin Coffee Co.",
-    location: "Vietnam",
-    price: "$12.00",
-    unit: "/ kg",
-    tag: "Small batch",
-    description:
-      "Coffee beans for cafés, roasters, and hospitality businesses. Explore roast preferences, wholesale quantities, and sample options.",
-    type: "Products",
-  },
-  {
-    id: 4,
-    name: "Everyday essentials footwear",
-    category: "Fashion & textiles",
-    image: "textiles",
-    supplier: "Everyday Supply",
-    location: "Bangladesh",
-    price: "$24.00",
-    unit: "/ pair",
-    tag: "Retail ready",
-    description:
-      "Everyday footwear for your next retail collection. Discuss sizes, color options, wholesale quantities, and lead times.",
-    type: "Products",
-  },
-  {
-    id: 5,
-    name: "Workspace design & planning",
-    category: "Business services",
-    image: "service",
-    supplier: "Studio Collective",
-    location: "Bangladesh",
-    price: "On request",
-    unit: "",
-    tag: "For your business",
-    description:
-      "Thoughtful workspace planning for growing businesses. Share your space, timeline, and requirements for a tailored quotation.",
-    type: "Services",
-  },
-  {
-    id: 6,
-    name: "Retail sourcing consultation",
-    category: "Business services",
-    image: "market",
-    supplier: "Market Partners",
-    location: "Bangladesh",
-    price: "On request",
-    unit: "",
-    tag: "Expert support",
-    description:
-      "Find a sourcing approach that fits your business. Discuss product categories, purchasing needs, and supplier selection.",
-    type: "Services",
-  },
-];
+type Supplier = {
+  id: string;
+  name: string;
+  location: string;
+  types: ("Products" | "Services")[];
+};
+function ListingImage({ image, name, sizes }: { image: string; name: string; sizes: string }) {
+  const [failed, setFailed] = useState(false);
+  return <Image src={!failed && image ? image : "/images/listing-placeholder.svg"}
+    alt={name} fill sizes={sizes} unoptimized onError={() => setFailed(true)} />;
+}
 type Modal =
   | { type: "product"; product: Product }
-  | { type: "seller" }
-  | { type: "login" }
+  | { type: "auth"; mode: AccountMode }
   | { type: "info"; title: string; text: string };
 function Brand({ light = false }: { light?: boolean }) {
   return (
@@ -255,190 +139,27 @@ function Brand({ light = false }: { light?: boolean }) {
       href="#top"
       aria-label="Busineskal home"
     >
-      <Image
-        src="/images/mansa-logo.png"
-        alt="MANSA"
-        width={197}
-        height={127}
-        className="brand-image"
-        preload={!light}
-      />
+      <span className="brand-symbol" aria-hidden="true">b.</span>
+      <span className="brand-name">Busineskal</span>
     </a>
   );
 }
-function Dialog({ modal, close }: { modal: Modal; close: () => void }) {
+function Dialog({ modal, close }: { modal: Exclude<Modal, { type: "auth" }>; close: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
-  const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState(false);
-  useEffect(() => {
-    ref.current?.showModal();
-  }, []);
-  function saveInterest(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const data = Object.fromEntries(new FormData(event.currentTarget));
-    try {
-      localStorage.setItem("busineskal-seller-interest", JSON.stringify(data));
-      setSubmitted(true);
-    } catch {
-      setError(true);
-    }
-  }
-  return (
-    <dialog
-      ref={ref}
-      className="detail-dialog"
-      onCancel={close}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) close();
-      }}
-      aria-labelledby="dialog-title"
-    >
-      <button
-        className="icon-button dialog-close"
-        aria-label="Close dialog"
-        onClick={close}
-      >
-        <Icon name="close" />
-      </button>
-      {modal.type === "product" ? (
-        <>
-          <div className="dialog-image">
-            <Image
-              src={`/images/${modal.product.image}.jpg`}
-              alt={modal.product.name}
-              fill
-              sizes="(max-width:600px) 90vw, 540px"
-            />
-          </div>
-          <div className="dialog-body">
-            <span className="eyebrow">
-              SAMPLE {modal.product.type === "Products" ? "PRODUCT" : "SERVICE"}
-            </span>
-            <h2 id="dialog-title">{modal.product.name}</h2>
-            <p>{modal.product.description}</p>
-            <div className="dialog-product-meta">
-              <span>
-                <Icon name="location" size={16} />
-                {modal.product.supplier} · {modal.product.location}
-              </span>
-              <strong>
-                {modal.product.price}
-                <small>{modal.product.unit}</small>
-              </strong>
-            </div>
-            <p className="fine-print">
-              This is a preview listing. Live supplier contact and ordering will
-              be available when the marketplace launches.
-            </p>
-            <button className="button primary" onClick={close}>
-              Keep exploring <Icon name="arrow" />
-            </button>
-          </div>
-        </>
-      ) : (
-        <div className="dialog-body">
-          <span className="dialog-mark">
-            <Icon name={modal.type === "seller" ? "bag" : "globe"} size={30} />
-          </span>
-          <span className="eyebrow">LET’S MAKE GOOD BUSINESS</span>
-          <h2 id="dialog-title">
-            {modal.type === "seller"
-              ? "Your next chapter starts here."
-              : modal.type === "login"
-                ? "Your marketplace is on its way."
-                : modal.title}
-          </h2>
-          {modal.type === "seller" ? (
-            submitted ? (
-              <div className="interest-success" role="status">
-                <Icon name="check" size={32} />
-                <h3>You’re ready for your next step.</h3>
-                <p>
-                  Your interest has been saved on this device. Online
-                  registration will open when the marketplace launches.
-                </p>
-                <button className="button primary" onClick={close}>
-                  Back to exploring <Icon name="arrow" />
-                </button>
-              </div>
-            ) : (
-              <>
-                <p>
-                  Tell us a little about your business and get ready for your
-                  next connection.
-                </p>
-                <form onSubmit={saveInterest} className="interest-form">
-                  <label>
-                    Your name
-                    <input
-                      name="name"
-                      placeholder="Full name"
-                      autoComplete="name"
-                      required
-                      maxLength={100}
-                    />
-                  </label>
-                  <label>
-                    Business email
-                    <input
-                      name="email"
-                      type="email"
-                      placeholder="you@business.com"
-                      autoComplete="email"
-                      required
-                      maxLength={200}
-                    />
-                  </label>
-                  <label>
-                    Business name
-                    <input
-                      name="business"
-                      placeholder="Your business"
-                      autoComplete="organization"
-                      required
-                      maxLength={150}
-                    />
-                  </label>
-                  <label>
-                    What do you offer?
-                    <select name="offering">
-                      <option>Products</option>
-                      <option>Services</option>
-                      <option>Products & services</option>
-                    </select>
-                  </label>
-                  <p className="fine-print">
-                    Your details are saved only on this device. Nothing is
-                    submitted online yet.
-                  </p>
-                  {error && (
-                    <p role="alert">
-                      Your browser could not save your details. Please enable
-                      local storage and try again.
-                    </p>
-                  )}
-                  <button className="button primary" type="submit">
-                    Save my interest <Icon name="arrow" />
-                  </button>
-                </form>
-              </>
-            )
-          ) : (
-            <>
-              <p>
-                {modal.type === "login"
-                  ? "Account sign-in will open with the full marketplace. In the meantime, discover products, explore services, and find your next opportunity."
-                  : modal.text}
-              </p>
-              <button className="button primary" onClick={close}>
-                Got it <Icon name="check" />
-              </button>
-            </>
-          )}
-        </div>
-      )}
-    </dialog>
-  );
+  useEffect(() => { ref.current?.showModal(); }, []);
+  return <dialog ref={ref} className="detail-dialog" onCancel={close}
+    onClick={(event) => { if (event.target === event.currentTarget) close(); }} aria-labelledby="dialog-title">
+    <button className="icon-button dialog-close" aria-label="Close dialog" onClick={close}><Icon name="close" /></button>
+    {modal.type === "product" ? <>
+      <div className="dialog-image"><ListingImage image={modal.product.image} name={modal.product.name} sizes="(max-width:600px) 90vw, 540px" /></div>
+      <div className="dialog-body"><span className="eyebrow">{modal.product.type === "Products" ? "PRODUCT" : "SERVICE"}</span>
+        <h2 id="dialog-title">{modal.product.name}</h2><p>{modal.product.description}</p>
+        <div className="dialog-product-meta"><span><Icon name="location" size={16} />{modal.product.supplier} / {modal.product.location}</span><strong>{modal.product.price}<small>{modal.product.unit}</small></strong></div>
+        <p className="fine-print">Published by {modal.product.supplier}. This website provides marketplace discovery and account registration.</p>
+        <button className="button primary" onClick={close}>Keep exploring <Icon name="arrow" /></button>
+      </div>
+    </> : <div className="dialog-body"><h2 id="dialog-title">{modal.title}</h2><p>{modal.text}</p><button className="button primary" onClick={close}>Got it <Icon name="check" /></button></div>}
+  </dialog>;
 }
 export default function Marketplace() {
   const [menuOpen, setMenuOpen] = useState(false),
@@ -447,12 +168,60 @@ export default function Marketplace() {
     [search, setSearch] = useState(""),
     [category, setCategory] = useState("All categories"),
     [country, setCountry] = useState("Anywhere"),
-    [saved, setSaved] = useState<number[]>([]),
-    [modal, setModal] = useState<Modal | null>(null),
-    [annual, setAnnual] = useState(false);
+    [modal, setModal] = useState<Modal | null>(null);
+  const [account, setAccount] = useState<Account | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/account/session", { signal: controller.signal, cache: "no-store" })
+      .then((response) => response.json()).then((result) => { if (result.success && !controller.signal.aborted) setAccount(result.data); })
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
+  function openAccount(mode: AccountMode) {
+    setMenuOpen(false);
+    setModal({ type: "auth", mode: account && mode === "login" ? "account" : mode });
+  }
+  const [products, setProducts] = useState<Product[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [supplierFilter, setSupplierFilter] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [catalogueError, setCatalogueError] = useState("");
+  const [reload, setReload] = useState(0);
+  useEffect(() => {
+    const controller = new AbortController();
+    async function load() {
+      try {
+        const response = await fetch("/api/marketplace", { signal: controller.signal, cache: "no-store" });
+        const result = await response.json();
+        if (!response.ok || result.success !== true) throw new Error(result.message || "Could not load marketplace.");
+        if (!controller.signal.aborted) {
+          setProducts(result.data.listings);
+          setSuppliers(result.data.suppliers);
+          setTab((current) => result.data.listings.some((p: Product) => p.type === current)
+            ? current : result.data.listings[0]?.type || current);
+        }
+      } catch (cause) {
+        if (!controller.signal.aborted) setCatalogueError(cause instanceof Error ? cause.message : "Could not load marketplace.");
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }
+    void load();
+    return () => controller.abort();
+  }, [reload]);
+  function retryCatalogue() {
+    setLoading(true);
+    setCatalogueError("");
+    setReload((value) => value + 1);
+  }
+  const categories = [...new Set(products.map((p) => p.category))].map((name) => ({
+    name, icon: "box" as IconName, detail: "Explore listings", color: "green",
+    type: products.find((p) => p.category === name)?.type || "Products",
+  }));
   const filtered = products.filter(
     (p) =>
       p.type === tab &&
+      (!supplierFilter || p.supplierId === supplierFilter) &&
       (category === "All categories" || p.category === category) &&
       (country === "Anywhere" || p.location === country) &&
       `${p.name} ${p.supplier} ${p.category}`
@@ -469,13 +238,14 @@ export default function Marketplace() {
       });
   const openSeller = () => {
     setMenuOpen(false);
-    setModal({ type: "seller" });
+    openAccount(account ? account.role === "user" ? "become-seller" : "account" : "seller-signup");
   };
   function browse(
     name = "All categories",
-    targetTab: "Products" | "Services" = "Products",
+    targetTab: "Products" | "Services" = products.some((p) => p.type === "Products") ? "Products" : "Services",
   ) {
     setCategory(name);
+    setSupplierFilter("");
     setTab(targetTab);
     setSearch("");
     setQuery("");
@@ -485,6 +255,7 @@ export default function Marketplace() {
   }
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setSupplierFilter("");
     setSearch(query.trim());
     setCategory("All categories");
     scrollCatalogue();
@@ -492,7 +263,9 @@ export default function Marketplace() {
   function searchSupplier(
     name: string,
     targetTab: "Products" | "Services" = "Products",
+    supplierId = "",
   ) {
+    setSupplierFilter(supplierId);
     setTab(targetTab);
     setSearch(name);
     setQuery(name);
@@ -525,15 +298,15 @@ export default function Marketplace() {
           <div className="header-actions">
             <button
               className="login-button"
-              onClick={() => setModal({ type: "login" })}
+              onClick={() => openAccount("login")}
             >
-              Log in
+              {account ? "My account" : "Sign in"}
             </button>
             <button
               className="button primary header-seller"
-              onClick={openSeller}
+              onClick={() => account ? account.role === "user" ? openSeller() : browse() : openAccount("signup")}
             >
-              Start selling <Icon name="arrow" size={17} />
+              {account ? account.role === "user" ? "Become a seller" : "Explore marketplace" : "Create account"} <Icon name="arrow" size={17} />
             </button>
             <button
               className="icon-button mobile-toggle"
@@ -620,19 +393,17 @@ export default function Marketplace() {
                   <Icon name="arrow" size={23} />
                 </button>
               </form>
-              <div className="popular-searches">
+              {categories.length > 0 && <div className="popular-searches">
                 <span>Popular:</span>
-                {["Fresh produce", "Coffee", "Packaging"].map((x) => (
+                {categories.slice(0, 3).map((c) => (
                   <button
-                    key={x}
-                    onClick={() =>
-                      x === "Coffee" ? searchSupplier("coffee") : browse(x)
-                    }
+                    key={c.name}
+                    onClick={() => browse(c.name, c.type)}
                   >
-                    {x}
+                    {c.name}
                   </button>
                 ))}
-              </div>
+              </div>}
               <div className="hero-proof">
                 <span className="proof-icon">
                   <Icon name="check" size={17} />
@@ -732,6 +503,7 @@ export default function Marketplace() {
                 Explore the marketplace <Icon name="arrow" />
               </a>
             </div>
+            {!categories.length && <p role="status">{loading ? "Loading categories?" : catalogueError ? "Categories will appear when the marketplace is available." : "Categories will appear as listings are published."}</p>}
             <div className="category-grid">
               {categories.map((c) => (
                 <button
@@ -740,7 +512,7 @@ export default function Marketplace() {
                   onClick={() =>
                     browse(
                       c.name,
-                      c.name === "Business services" ? "Services" : "Products",
+                      c.type,
                     )
                   }
                 >
@@ -765,8 +537,8 @@ export default function Marketplace() {
                   <span className="serif-accent">business.</span>
                 </h2>
                 <p>
-                  Meet your next bestseller. Explore a preview of what’s in
-                  store.
+                  Meet your next bestseller. Explore the latest published
+                  products and services from our marketplace.
                 </p>
               </div>
               <div
@@ -833,9 +605,7 @@ export default function Marketplace() {
                   onChange={(e) => setCountry(e.target.value)}
                 >
                   <option value="Anywhere">Anywhere</option>
-                  <option>Bangladesh</option>
-                  <option>Kenya</option>
-                  <option>Vietnam</option>
+                  {[...new Set(products.map((p) => p.location).filter(Boolean))].sort().map((location) => <option key={location}>{location}</option>)}
                 </select>
               </label>
             </div>
@@ -844,6 +614,7 @@ export default function Marketplace() {
                 Results for “{search}”
                 <button
                   onClick={() => {
+                    setSupplierFilter("");
                     setSearch("");
                     setQuery("");
                   }}
@@ -853,6 +624,11 @@ export default function Marketplace() {
                 </button>
               </div>
             )}
+            {loading && <div className="empty-state" role="status">Loading marketplace listings...</div>}
+            {catalogueError && <div className="empty-state" role="alert">
+              <h3>Marketplace unavailable</h3><p>{catalogueError}</p>
+              <button className="button secondary" onClick={retryCatalogue}>Try again <Icon name="arrow" /></button>
+            </div>}
             <div
               id="catalogue-panel"
               role="tabpanel"
@@ -869,28 +645,12 @@ export default function Marketplace() {
                           setModal({ type: "product", product: p })
                         }
                       >
-                        <Image
-                          src={`/images/${p.image}.jpg`}
-                          alt={p.name}
-                          fill
+                        <ListingImage image={p.image} name={p.name}
                           sizes="(max-width:540px) 45vw, (max-width:1000px) 45vw, 25vw"
                         />
                       </button>
                       <span className="product-tag">{p.tag}</span>
-                      <button
-                        className={`favorite-button ${saved.includes(p.id) ? "saved" : ""}`}
-                        aria-label={`${saved.includes(p.id) ? "Unsave" : "Save"} ${p.name}`}
-                        aria-pressed={saved.includes(p.id)}
-                        onClick={() =>
-                          setSaved(
-                            saved.includes(p.id)
-                              ? saved.filter((id) => id !== p.id)
-                              : [...saved, p.id],
-                          )
-                        }
-                      >
-                        <Icon name="heart" size={19} />
-                      </button>
+
                     </div>
                     <div className="product-body">
                       <span className="product-category">{p.category}</span>
@@ -921,17 +681,18 @@ export default function Marketplace() {
                   </article>
                 ))}
               </div>
-              {!filtered.length && (
+              {!loading && !catalogueError && !filtered.length && (
                 <div className="empty-state">
                   <Icon name="search" size={32} />
                   <h3>A new opportunity is waiting.</h3>
                   <p>
-                    No preview listings match these filters. Try another search
+                    No published listings match these filters. Try another search
                     or explore all listings.
                   </p>
                   <button
                     className="button secondary"
                     onClick={() => {
+                      setSupplierFilter("");
                       setSearch("");
                       setQuery("");
                       setCategory("All categories");
@@ -987,14 +748,14 @@ export default function Marketplace() {
                   {
                     number: "02",
                     icon: "message",
-                    title: "Start a conversation",
-                    text: "Ask a question, request a quotation, and get to know the people behind the products.",
+                    title: "Create your account",
+                    text: "Register as a buyer to join Busineskal, or submit your business details to apply as a seller.",
                   },
                   {
                     number: "03",
                     icon: "chart",
-                    title: "Grow, together",
-                    text: "Compare your options, choose the right partner, and build a connection that lasts.",
+                    title: "Take your next step",
+                    text: "Sign in to your account. Seller accounts become available after our team approves your application.",
                   },
                 ] as {
                   number: string;
@@ -1041,7 +802,7 @@ export default function Marketplace() {
               <div className="supplier-principles">
                 <span>
                   <Icon name="check" size={16} />
-                  Direct conversations
+                  Approved seller accounts
                 </span>
                 <span>
                   <Icon name="check" size={16} />
@@ -1053,309 +814,36 @@ export default function Marketplace() {
               <span className="preview-label">
                 A FEW FACES OF THE MARKETPLACE
               </span>
-              {(
-                [
-                  {
-                    name: "Greenfield Farms",
-                    description: "Fresh produce · Bangladesh",
-                    icon: "leaf",
-                    color: "green",
-                  },
-                  {
-                    name: "Origin Coffee Co.",
-                    description: "Food & beverages · Vietnam",
-                    icon: "coffee",
-                    color: "peach",
-                  },
-                  {
-                    name: "Studio Collective",
-                    description: "Business services · Bangladesh",
-                    icon: "tools",
-                    color: "purple",
-                  },
-                ] as {
-                  name: string;
-                  description: string;
-                  icon: IconName;
-                  color: string;
-                }[]
-              ).map((s) => (
-                <button
-                  className="supplier-preview-card"
-                  key={s.name}
-                  onClick={() =>
-                    searchSupplier(
-                      s.name,
-                      s.icon === "tools" ? "Services" : "Products",
-                    )
-                  }
-                >
-                  <span className={`supplier-avatar ${s.color}`}>
-                    <Icon name={s.icon} size={27} />
-                  </span>
-                  <span>
-                    <strong>{s.name}</strong>
-                    <small>{s.description}</small>
-                  </span>
+              {suppliers.map((s) => (
+                <button className="supplier-preview-card" key={s.id}
+                  onClick={() => searchSupplier(s.name, s.types[0], s.id)}>
+                  <span className="supplier-avatar green"><Icon name="bag" size={27} /></span>
+                  <span><strong>{s.name}</strong><small>{s.types.join(" & ")}{s.location ? " · " + s.location : ""}</small></span>
                   <Icon name="arrow" size={20} />
                 </button>
               ))}
+              {!suppliers.length && <p role="status">{loading ? "Loading suppliers..." : catalogueError ? "Suppliers are temporarily unavailable." : "No suppliers have published listings yet."}</p>}
               <span className="supplier-preview-foot">
                 <span className="live-dot" />
-                Sample profiles. A world of potential.
+                {suppliers.length} suppliers with published listings
               </span>
             </div>
           </div>
         </section>
         <section className="seller-section" id="seller">
           <div className="container seller-grid">
-            <div className="seller-copy">
-              <span className="eyebrow">
-                YOU MAKE IT. LET’S HELP YOU GROW IT.
-              </span>
-              <h2>
-                Your business.
-                <br />A bigger <span className="serif-accent">world.</span>
-              </h2>
-              <p>
-                Give your products a place to shine. Connect with new buyers and
-                bring your shop, orders, and conversations together.
-              </p>
-              <ul>
-                {[
-                  "Showcase your products and services",
-                  "Keep track of inventory, orders, and sales",
-                  "Build relationships beyond your local market",
-                ].map((x) => (
-                  <li key={x}>
-                    <span>
-                      <Icon name="check" size={15} />
-                    </span>
-                    {x}
-                  </li>
-                ))}
-              </ul>
-              <button className="button dark" onClick={openSeller}>
-                Become a seller <Icon name="arrow" />
-              </button>
-              <span className="seller-small">
-                Small beginnings. Bigger possibilities.
-              </span>
+            <div className="seller-copy"><span className="eyebrow">BUILD YOUR BUSINESS WITH BUSINESKAL</span>
+              <h2>Your business.<br />A bigger <span className="serif-accent">world.</span></h2>
+              <p>Apply to join our marketplace as a product supplier or service provider. Already have a buyer account? Sign in and submit your business details.</p>
+              <ul>{["One account for your business", "Products and services in one marketplace", "Seller applications reviewed by our team"].map((item) => <li key={item}><span><Icon name="check" size={15} /></span>{item}</li>)}</ul>
+              <button className="button dark" onClick={openSeller}>{account?.role === "seller" ? "View seller account" : "Become a seller"} <Icon name="arrow" /></button>
+              <span className="seller-small">Seller approval is required before seller sign-in.</span>
             </div>
-            <div className="dashboard-wrap">
-              <div
-                className="dashboard-preview"
-                aria-label="Illustration of the planned seller dashboard"
-              >
-                <div className="dashboard-topbar">
-                  <span className="mini-brand">b.</span>
-                  <span>My business</span>
-                  <span className="dashboard-profile">GF</span>
-                </div>
-                <div className="dashboard-content">
-                  <div className="dashboard-sidebar">
-                    <Icon name="chart" size={19} />
-                    <Icon name="bag" size={19} />
-                    <Icon name="box" size={19} />
-                    <Icon name="message" size={19} />
-                  </div>
-                  <div className="dashboard-main">
-                    <div className="dashboard-greeting">
-                      <div>
-                        <small>YOUR BUSINESS, AT A GLANCE</small>
-                        <strong>Good things are growing.</strong>
-                      </div>
-                      <span className="dashboard-period">This month ⌄</span>
-                    </div>
-                    <div className="dashboard-stats">
-                      <div>
-                        <span>Total sales</span>
-                        <strong>
-                          $8,240<span>↗ 12.8%</span>
-                        </strong>
-                        <small>Illustrative data</small>
-                      </div>
-                      <div>
-                        <span>Active products</span>
-                        <strong>
-                          24<span>↗ 4 new</span>
-                        </strong>
-                        <small>Illustrative data</small>
-                      </div>
-                    </div>
-                    <div className="dashboard-chart">
-                      <div>
-                        <strong>Sales overview</strong>
-                        <span>
-                          <i />
-                          Sales
-                        </span>
-                      </div>
-                      <svg viewBox="0 0 400 125" fill="none" aria-hidden="true">
-                        <defs>
-                          <linearGradient
-                            id="chart-fill"
-                            x1="0"
-                            x2="0"
-                            y1="0"
-                            y2="1"
-                          >
-                            <stop
-                              offset="0%"
-                              stopColor="#eda824"
-                              stopOpacity=".25"
-                            />
-                            <stop
-                              offset="100%"
-                              stopColor="#eda824"
-                              stopOpacity="0"
-                            />
-                          </linearGradient>
-                        </defs>
-                        <path
-                          d="M0 25h400M0 65h400M0 105h400"
-                          stroke="#f1efe9"
-                          strokeDasharray="4 5"
-                        />
-                        <path
-                          d="M0 105C30 105 28 66 64 78S107 106 136 61s38 11 69-5 39-46 69-29 52 10 65-8 32 17 61-16V125H0Z"
-                          fill="url(#chart-fill)"
-                        />
-                        <path
-                          d="M0 105C30 105 28 66 64 78S107 106 136 61s38 11 69-5 39-46 69-29 52 10 65-8 32 17 61-16"
-                          stroke="#e69c1c"
-                          strokeWidth="3"
-                        />
-                      </svg>
-                      <div className="chart-months">
-                        {["Jan", "Feb", "Mar", "Apr", "May", "Jun"].map((m) => (
-                          <span key={m}>{m}</span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="dashboard-orders">
-                      <strong>Recent orders</strong>
-                      <span>View all →</span>
-                    </div>
-                    <div className="dashboard-order">
-                      <span className="order-icon">
-                        <Icon name="leaf" size={19} />
-                      </span>
-                      <div>
-                        <strong>Fresh produce box</strong>
-                        <small>Order #BK-1024</small>
-                      </div>
-                      <span className="order-status">Completed</span>
-                      <strong>$240.00</strong>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="growth-card">
-                <span>
-                  <Icon name="chart" size={22} />
-                </span>
-                <div>
-                  <strong>Room to grow.</strong>
-                  <small>Tools to take your next step.</small>
-                </div>
-                <Icon name="arrow" size={18} />
-              </div>
-              <span className="dashboard-caption">
-                A preview of your future seller workspace
-              </span>
+            <div className="seller-process"><span className="eyebrow">YOUR PATH TO SELLING</span>
+              {[{ step: "01", title: "Tell us about your business", text: "Provide your business name, country, phone number, and what you offer." },
+                { step: "02", title: "Submit your application", text: "Create a seller account, or apply from your existing buyer account." },
+                { step: "03", title: "Get approved", text: "An administrator reviews your application. Once approved, sign in with your email and password." }].map((item) => <div className="seller-process-step" key={item.step}><span>{item.step}</span><div><h3>{item.title}</h3><p>{item.text}</p></div></div>)}
             </div>
-          </div>
-        </section>
-        <section className="section plans-section" id="plans">
-          <div className="container">
-            <div className="section-heading centered">
-              <span className="eyebrow">BUILT FOR YOUR NEXT CHAPTER</span>
-              <h2>
-                Start small. <span className="serif-accent">Think bigger.</span>
-              </h2>
-              <p>A home for your business, at every stage of the journey.</p>
-            </div>
-            <div className="billing-toggle" aria-label="Plan billing period">
-              <button
-                className={!annual ? "active" : ""}
-                aria-pressed={!annual}
-                onClick={() => setAnnual(false)}
-              >
-                Monthly
-              </button>
-              <button
-                className={annual ? "active" : ""}
-                aria-pressed={annual}
-                onClick={() => setAnnual(true)}
-              >
-                Yearly
-              </button>
-            </div>
-            <div className="plans-grid">
-              {[
-                {
-                  name: "Basic",
-                  caption: "A place to get started.",
-                  headline: "Plant the seed.",
-                  features: [
-                    "Your own business profile",
-                    "Product & service listings",
-                    "Buyer conversations",
-                    "Essential seller tools",
-                  ],
-                  premium: false,
-                },
-                {
-                  name: "Premium",
-                  caption: "Make room for what’s next.",
-                  headline: "Grow your reach.",
-                  features: [
-                    "Everything in Basic",
-                    "More room for your catalogue",
-                    "Advanced sales insights",
-                    "Additional shop customization",
-                  ],
-                  premium: true,
-                },
-              ].map((plan) => (
-                <article
-                  className={`plan-card ${plan.premium ? "premium" : ""}`}
-                  key={plan.name}
-                >
-                  {plan.premium && (
-                    <span className="plan-badge">FOR YOUR NEXT BIG STEP</span>
-                  )}
-                  <div className="plan-heading">
-                    <span>{plan.name}</span>
-                    <Icon name={plan.premium ? "chart" : "leaf"} size={29} />
-                  </div>
-                  <p>{plan.caption}</p>
-                  <h3>{plan.headline}</h3>
-                  <span className="plan-pricing">
-                    {annual ? "Yearly" : "Monthly"} pricing announced at launch
-                  </span>
-                  <ul>
-                    {plan.features.map((f) => (
-                      <li key={f}>
-                        <Icon name="check" size={17} />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <button
-                    className={`button ${plan.premium ? "dark" : "secondary"}`}
-                    onClick={openSeller}
-                  >
-                    Register your interest <Icon name="arrow" />
-                  </button>
-                </article>
-              ))}
-            </div>
-            <p className="plans-note">
-              A preview of our planned memberships. Final features and pricing
-              will be confirmed at launch.
-            </p>
           </div>
         </section>
         <section className="section faq-section">
@@ -1377,15 +865,15 @@ export default function Marketplace() {
                 },
                 {
                   q: "Can I sell both products and services?",
-                  a: "Yes. The planned seller experience supports product and service listings, shop profiles, inventory management, messaging, orders, and sales insights.",
+                  a: "Yes. Busineskal supports product suppliers and service providers. Apply as a seller with your business details; admin approval is required before seller sign-in.",
                 },
                 {
                   q: "How do I find the right supplier?",
-                  a: "Browse by category, search for a product or service, and filter by supplier location. Once the marketplace launches, you will be able to contact suppliers and discuss your requirements directly.",
+                  a: "Browse by category, search for a product or service, and filter by supplier location. You can inspect published listing details here. Direct supplier messaging will be available with the full marketplace.",
                 },
                 {
-                  q: "Is the marketplace live yet?",
-                  a: "This landing page previews the marketplace experience. Listings and dashboard figures are examples. Live accounts, supplier messaging, payments, and ordering will open with the full launch.",
+                  q: "What can I do on this website?",
+                  a: "This website displays published products and services, supports buyer and seller registration, and lets approved accounts sign in. Ordering, messaging, and seller management are part of the marketplace application.",
                 },
               ].map((f) => (
                 <details key={f.q}>
@@ -1422,89 +910,12 @@ export default function Marketplace() {
           </div>
         </section>
       </main>
-      <footer className="site-footer">
-        <div className="container">
-          <div className="footer-main">
-            <div className="footer-brand">
-              <Brand light />
-              <p>
-                Local roots. Global possibilities.
-                <br />
-                Good business, together.
-              </p>
-              <span className="footer-location">
-                <Icon name="globe" size={16} />
-                Built for a connected world.
-              </span>
-            </div>
-            <div className="footer-column">
-              <strong>Explore</strong>
-              <a href="#marketplace" onClick={() => browse()}>
-                Products
-              </a>
-              <a
-                href="#marketplace"
-                onClick={() => browse("All categories", "Services")}
-              >
-                Services
-              </a>
-              <a href="#suppliers">Suppliers</a>
-              <a href="#categories">Categories</a>
-            </div>
-            <div className="footer-column">
-              <strong>For your business</strong>
-              <a href="#how-it-works">How it works</a>
-              <button onClick={openSeller}>Become a seller</button>
-              <a href="#plans">Membership plans</a>
-              <button onClick={() => setModal({ type: "login" })}>
-                My account
-              </button>
-            </div>
-            <div className="footer-column">
-              <strong>Let’s stay connected</strong>
-              <p>
-                The next chapter of business
-                <br />
-                is coming. Be part of it.
-              </p>
-              <button className="footer-interest" onClick={openSeller}>
-                Register your interest <Icon name="arrow" size={17} />
-              </button>
-            </div>
-          </div>
-          <div className="footer-bottom">
-            <span>© 2026 Busineskal. All rights reserved.</span>
-            <div>
-              <button
-                onClick={() =>
-                  setModal({
-                    type: "info",
-                    title: "Your privacy matters.",
-                    text: "This preview saves seller interest only in your browser when you submit the form. It does not send your details to a server. A full privacy policy will be provided before marketplace registration opens.",
-                  })
-                }
-              >
-                Privacy
-              </button>
-              <button
-                onClick={() =>
-                  setModal({
-                    type: "info",
-                    title: "About this preview.",
-                    text: "The catalogue, prices, supplier profiles, and dashboard data are illustrative. This preview does not process transactions or create online accounts. Marketplace terms will be available at launch.",
-                  })
-                }
-              >
-                Terms
-              </button>
-              <span>
-                Made for possibility <Icon name="star" size={13} />
-              </span>
-            </div>
-          </div>
-        </div>
-      </footer>
-      {modal && <Dialog modal={modal} close={() => setModal(null)} />}
+      <footer className="site-footer"><div className="container footer-main">
+        <div className="footer-brand"><Brand light /><p>Discover products and services. Meet suppliers. Build your next business connection.</p></div>
+        <div className="footer-column"><strong>Discover</strong><a href="#marketplace" onClick={() => browse()}>Marketplace</a><a href="#suppliers">Suppliers</a><a href="#how-it-works">How it works</a></div>
+        <div className="footer-column"><strong>Your account</strong><button onClick={() => openAccount("login")}>{account ? "My account" : "Sign in"}</button>{!account && <button onClick={() => openAccount("signup")}>Create an account</button>}<button onClick={openSeller}>Become a seller</button></div>
+      </div><div className="container footer-bottom"><span>Busineskal. Good business starts with a connection.</span></div></footer>
+      {modal?.type === "auth" ? <AccountDialog key={modal.mode} initialMode={modal.mode} account={account} onAccount={setAccount} close={() => setModal(null)} /> : modal && <Dialog modal={modal} close={() => setModal(null)} />}
     </div>
   );
 }
