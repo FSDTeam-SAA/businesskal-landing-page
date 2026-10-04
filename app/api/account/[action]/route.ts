@@ -16,7 +16,8 @@ export async function GET(_request: Request, context: RouteContext<"/api/account
 
 export async function POST(request: Request, context: RouteContext<"/api/account/[action]">) {
   const origin = request.headers.get("origin");
-  if ((origin && origin !== new URL(request.url).origin) || request.headers.get("sec-fetch-site") === "cross-site") {
+  const allowedOrigins = process.env.APP_ORIGINS?.split(",").map((value) => value.trim()) || [new URL(request.url).origin];
+  if ((origin && !allowedOrigins.includes(origin)) || request.headers.get("sec-fetch-site") === "cross-site") {
     return Response.json({ success: false, message: "Invalid request origin." }, { status: 403 });
   }
   const { action } = await context.params;
