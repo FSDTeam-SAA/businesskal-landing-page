@@ -14,7 +14,7 @@ const geistSans = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Busineskal — Good business starts with a connection",
+  title: "Busineskal — Products, Services & Business Suppliers",
   description:
     "Discover products, explore services, and meet your next business partner. Busineskal brings buyers and suppliers together in one marketplace.",
 };

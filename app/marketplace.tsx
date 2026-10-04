@@ -3,6 +3,7 @@
 import Image from "next/image";
 import AccountDialog, { type AccountMode } from "./account-dialog";
 import type { Account } from "./lib/account";
+import { ListingCollections, SellerPlans, WhyBusineskal } from "./landing-sections";
 import {
   useEffect,
   useRef,
@@ -103,7 +104,7 @@ function Icon({
     </svg>
   );
 }
-type Product = {
+export type Product = {
   id: string;
   supplierId: string;
   name: string;
@@ -116,6 +117,13 @@ type Product = {
   tag: string;
   description: string;
   type: "Products" | "Services";
+  createdAt?: string | null;
+  rating?: number;
+  reviewsCount?: number;
+  minOrderQty?: number;
+  deliveryTimeDays?: number;
+  stock?: number;
+  soldCount?: number;
 };
 type Supplier = {
   id: string;
@@ -155,7 +163,13 @@ function Dialog({ modal, close }: { modal: Exclude<Modal, { type: "auth" }>; clo
       <div className="dialog-body"><span className="eyebrow">{modal.product.type === "Products" ? "PRODUCT" : "SERVICE"}</span>
         <h2 id="dialog-title">{modal.product.name}</h2><p>{modal.product.description}</p>
         <div className="dialog-product-meta"><span><Icon name="location" size={16} />{modal.product.supplier} / {modal.product.location}</span><strong>{modal.product.price}<small>{modal.product.unit}</small></strong></div>
-        <p className="fine-print">Published by {modal.product.supplier}. This website provides marketplace discovery and account registration.</p>
+        {modal.product.type === "Products" && <dl className="listing-facts">
+          {modal.product.minOrderQty !== undefined && <div><dt>Minimum order</dt><dd>{modal.product.minOrderQty}</dd></div>}
+          {modal.product.stock !== undefined && <div><dt>Availability</dt><dd>{modal.product.stock > 0 ? "In stock" : "Out of stock"}</dd></div>}
+          {!!modal.product.deliveryTimeDays && <div><dt>Listed delivery time</dt><dd>{modal.product.deliveryTimeDays} days</dd></div>}
+        </dl>}
+        {!!modal.product.reviewsCount && !!modal.product.rating && <p className="discovery-rating">★ {modal.product.rating.toFixed(1)} · {modal.product.reviewsCount} reviews</p>}
+        <p className="fine-print">{modal.product.type === "Products" ? "Confirm price currency, availability, and delivery terms with the supplier before ordering." : "Service scope, availability, and pricing depend on the provider. Explore their offering before choosing a service."}</p>
         <button className="button primary" onClick={close}>Keep exploring <Icon name="arrow" /></button>
       </div>
     </> : <div className="dialog-body"><h2 id="dialog-title">{modal.title}</h2><p>{modal.text}</p><button className="button primary" onClick={close}>Got it <Icon name="check" /></button></div>}
@@ -170,6 +184,7 @@ export default function Marketplace() {
     [country, setCountry] = useState("Anywhere"),
     [modal, setModal] = useState<Modal | null>(null);
   const [account, setAccount] = useState<Account | null>(null);
+  const [journey, setJourney] = useState<"Buyer" | "Seller">("Buyer");
   useEffect(() => {
     const controller = new AbortController();
     fetch("/api/account/session", { signal: controller.signal, cache: "no-store" })
@@ -214,10 +229,10 @@ export default function Marketplace() {
     setCatalogueError("");
     setReload((value) => value + 1);
   }
-  const categories = [...new Set(products.map((p) => p.category))].map((name) => ({
-    name, icon: "box" as IconName, detail: "Explore listings", color: "green",
-    type: products.find((p) => p.category === name)?.type || "Products",
-  }));
+  const categories = [...new Set(products.filter((p) => p.type === tab).map((p) => p.category))].map((name) => {
+    const listings = products.filter((p) => p.type === tab && p.category === name);
+    return { name, image: listings.find((p) => p.image)?.image || "", detail: `${listings.length} published ${tab.toLowerCase()}`, type: tab };
+  });
   const filtered = products.filter(
     (p) =>
       p.type === tab &&
@@ -279,7 +294,7 @@ export default function Marketplace() {
         Skip to content
       </a>
       <div className="announcement">
-        <span>A world of opportunity. One place to connect.</span>
+        <span>Discover products. Find services. Bring your business online.</span>
         <a href="#how-it-works">
           Meet your marketplace <Icon name="arrow" size={14} />
         </a>
@@ -289,7 +304,7 @@ export default function Marketplace() {
           <Brand />
           <nav className="desktop-nav" aria-label="Main navigation">
             <a href="#marketplace" onClick={() => browse()}>
-              Marketplace
+              Products & services
             </a>
             <a href="#suppliers">Find suppliers</a>
             <a href="#how-it-works">How it works</a>
@@ -304,9 +319,9 @@ export default function Marketplace() {
             </button>
             <button
               className="button primary header-seller"
-              onClick={() => account ? account.role === "user" ? openSeller() : browse() : openAccount("signup")}
+              onClick={openSeller}
             >
-              {account ? account.role === "user" ? "Become a seller" : "Explore marketplace" : "Create account"} <Icon name="arrow" size={17} />
+              {account?.role === "seller" ? "Seller account" : "Become a seller"} <Icon name="arrow" size={17} />
             </button>
             <button
               className="icon-button mobile-toggle"
@@ -352,10 +367,9 @@ export default function Marketplace() {
                 BIG OPPORTUNITIES. REAL CONNECTIONS.
               </span>
               <h1>
-                Good business
-                <br />
-                starts with a<br />
-                <span className="serif-accent">connection.</span>
+                Products. Services.
+                <br />Your next business
+                <br /><span className="serif-accent">connection.</span>
                 <svg
                   className="headline-spark"
                   viewBox="0 0 40 42"
@@ -371,9 +385,8 @@ export default function Marketplace() {
                 </svg>
               </h1>
               <p>
-                Find the right products. Meet the right people.
-                <br className="desktop-break" />
-                Build something bigger, together.
+                Discover suppliers, explore business services, and bring your
+                own business to Busineskal. One marketplace for your next move.
               </p>
               <form className="hero-search" onSubmit={submitSearch}>
                 <label className="search-input">
@@ -393,8 +406,9 @@ export default function Marketplace() {
                   <Icon name="arrow" size={23} />
                 </button>
               </form>
+              <div className="hero-actions"><button className="button primary" onClick={() => browse()}>Explore marketplace <Icon name="arrow" size={17} /></button><button className="text-link" onClick={openSeller}>Become a seller <Icon name="arrow" size={17} /></button></div>
               {categories.length > 0 && <div className="popular-searches">
-                <span>Popular:</span>
+                <span>Browse:</span>
                 {categories.slice(0, 3).map((c) => (
                   <button
                     key={c.name}
@@ -484,15 +498,14 @@ export default function Marketplace() {
             </div>
           </div>
         </section>
+        {!loading && !catalogueError && products.length > 0 && <div className="catalogue-activity"><div className="container"><span>AVAILABLE TO EXPLORE</span><div><strong>{products.filter((p) => p.type === "Products").length}</strong> published products</div><div><strong>{products.filter((p) => p.type === "Services").length}</strong> published services</div><div><strong>{suppliers.length}</strong> suppliers in this catalogue</div></div></div>}
         <section className="section categories-section" id="categories">
           <div className="container">
             <div className="section-heading">
               <div>
                 <span className="eyebrow">FIND YOUR NEXT BIG THING</span>
                 <h2>
-                  A little of everything.
-                  <br />A lot of{" "}
-                  <span className="serif-accent">opportunity.</span>
+                  Browse by <span className="serif-accent">category.</span>
                 </h2>
               </div>
               <a
@@ -503,12 +516,13 @@ export default function Marketplace() {
                 Explore the marketplace <Icon name="arrow" />
               </a>
             </div>
-            {!categories.length && <p role="status">{loading ? "Loading categories?" : catalogueError ? "Categories will appear when the marketplace is available." : "Categories will appear as listings are published."}</p>}
+            <div className="category-type-switch" role="group" aria-label="Category listing type">{(["Products", "Services"] as const).map((type) => <button key={type} aria-pressed={tab === type} onClick={() => { setTab(type); setCategory("All categories"); }}>{type}</button>)}</div>
+            {!categories.length && <p role="status">{loading ? "Loading categories…" : catalogueError ? "Categories will appear when the marketplace is available." : `Categories will appear as ${tab.toLowerCase()} are published.`}</p>}
             <div className="category-grid">
               {categories.map((c) => (
                 <button
                   key={c.name}
-                  className={`category-card ${c.color}`}
+                  className="category-card image-category"
                   onClick={() =>
                     browse(
                       c.name,
@@ -516,9 +530,7 @@ export default function Marketplace() {
                     )
                   }
                 >
-                  <span className="category-icon">
-                    <Icon name={c.icon} size={29} />
-                  </span>
+                  <span className="category-photo"><ListingImage image={c.image} name={c.name} sizes="(max-width: 600px) 45vw, 25vw" /></span>
                   <strong>{c.name}</strong>
                   <span>{c.detail}</span>
                   <Icon name="arrow" size={18} className="category-arrow" />
@@ -527,18 +539,18 @@ export default function Marketplace() {
             </div>
           </div>
         </section>
+        {!loading && !catalogueError && <ListingCollections listings={products} open={(product) => setModal({ type: "product", product })} browse={(type) => browse("All categories", type)} />}
         <section className="section marketplace-section" id="marketplace">
           <div className="container">
             <div className="section-heading">
               <div>
                 <span className="eyebrow">DISCOVER THE MARKETPLACE</span>
                 <h2>
-                  Fresh finds for your{" "}
-                  <span className="serif-accent">business.</span>
+                  Explore the <span className="serif-accent">marketplace.</span>
                 </h2>
                 <p>
-                  Meet your next bestseller. Explore the latest published
-                  products and services from our marketplace.
+                  Search published listings, choose a category, and filter by
+                  supplier location to find what your business needs.
                 </p>
               </div>
               <div
@@ -734,11 +746,12 @@ export default function Marketplace() {
                 From hello to{" "}
                 <span className="serif-accent">let’s do business.</span>
               </h2>
-              <p>Good connections shouldn’t be complicated.</p>
+              <p>Two ways to join. One place to discover your next opportunity.</p>
             </div>
+            <div className="journey-switch" role="group" aria-label="Choose your account journey">{(["Buyer", "Seller"] as const).map((type) => <button key={type} aria-pressed={journey === type} onClick={() => setJourney(type)}>{type === "Buyer" ? "I’m looking to buy" : "I want to sell"}</button>)}</div>
             <div className="steps-grid">
               {(
-                [
+                (journey === "Buyer" ? [
                   {
                     number: "01",
                     icon: "search",
@@ -749,15 +762,19 @@ export default function Marketplace() {
                     number: "02",
                     icon: "message",
                     title: "Create your account",
-                    text: "Register as a buyer to join Busineskal, or submit your business details to apply as a seller.",
+                    text: "Create a buyer account or sign in with your existing email and password.",
                   },
                   {
                     number: "03",
                     icon: "chart",
-                    title: "Take your next step",
-                    text: "Sign in to your account. Seller accounts become available after our team approves your application.",
+                    title: "Explore the details",
+                    text: "Review supplier information, product quantities, and service descriptions before choosing your next business connection.",
                   },
-                ] as {
+                ] : [
+                  { number: "01", icon: "bag", title: "Apply with your business", text: "Enter your business name, country, and phone number. Existing buyers can apply from their account." },
+                  { number: "02", icon: "check", title: "Get your account reviewed", text: "An administrator reviews your application. Seller sign-in is available after approval." },
+                  { number: "03", icon: "chart", title: "Manage your offerings", text: "Use your seller dashboard to manage your shop, product and service listings. Listings are reviewed before publication." },
+                ]) as {
                   number: string;
                   icon: IconName;
                   title: string;
@@ -776,6 +793,7 @@ export default function Marketplace() {
                 </div>
               ))}
             </div>
+            <div className="journey-cta"><button className="button secondary" onClick={() => journey === "Seller" ? openSeller() : openAccount(account ? "account" : "signup")}>{journey === "Seller" ? "Start your seller application" : account ? "View your account" : "Create a buyer account"} <Icon name="arrow" /></button></div>
           </div>
         </section>
         <section className="section supplier-section" id="suppliers">
@@ -830,12 +848,13 @@ export default function Marketplace() {
             </div>
           </div>
         </section>
+        <WhyBusineskal join={() => openAccount(account ? "account" : "signup")} sell={openSeller} />
         <section className="seller-section" id="seller">
           <div className="container seller-grid">
             <div className="seller-copy"><span className="eyebrow">BUILD YOUR BUSINESS WITH BUSINESKAL</span>
               <h2>Your business.<br />A bigger <span className="serif-accent">world.</span></h2>
               <p>Apply to join our marketplace as a product supplier or service provider. Already have a buyer account? Sign in and submit your business details.</p>
-              <ul>{["One account for your business", "Products and services in one marketplace", "Seller applications reviewed by our team"].map((item) => <li key={item}><span><Icon name="check" size={15} /></span>{item}</li>)}</ul>
+              <ul>{["Showcase your products and services", "Manage your shop from the seller dashboard", "Applications and listings reviewed before publication"].map((item) => <li key={item}><span><Icon name="check" size={15} /></span>{item}</li>)}</ul>
               <button className="button dark" onClick={openSeller}>{account?.role === "seller" ? "View seller account" : "Become a seller"} <Icon name="arrow" /></button>
               <span className="seller-small">Seller approval is required before seller sign-in.</span>
             </div>
@@ -846,7 +865,8 @@ export default function Marketplace() {
             </div>
           </div>
         </section>
-        <section className="section faq-section">
+        <SellerPlans apply={openSeller} />
+        <section className="section faq-section" id="faq">
           <div className="container faq-layout">
             <div>
               <span className="eyebrow">A LITTLE MORE TO KNOW</span>
@@ -875,6 +895,10 @@ export default function Marketplace() {
                   q: "What can I do on this website?",
                   a: "This website displays published products and services, supports buyer and seller registration, and lets approved accounts sign in. Ordering, messaging, and seller management are part of the marketplace application.",
                 },
+                { q: "Can an existing buyer become a seller?", a: "Yes. Sign in, choose Become a Seller, and submit your business details. Your application must be approved before you can sign in as a seller." },
+                { q: "Are seller approval and shop verification the same?", a: "No. Seller approval allows seller account access. Shop verification and listing review are separate checks. A reviewed listing does not guarantee delivery or service quality." },
+                { q: "How do delivery and minimum order quantities work?", a: "Check each product’s listed minimum order, pack size, and delivery time. Delivery charges, regions, availability, and returns depend on the supplier and should be confirmed before ordering." },
+                { q: "How do I choose a service?", a: "Browse services by category and provider location, then read the service description. Scope and pricing depend on the provider; service cards do not show a fixed price." },
               ].map((f) => (
                 <details key={f.q}>
                   <summary>
@@ -912,7 +936,7 @@ export default function Marketplace() {
       </main>
       <footer className="site-footer"><div className="container footer-main">
         <div className="footer-brand"><Brand light /><p>Discover products and services. Meet suppliers. Build your next business connection.</p></div>
-        <div className="footer-column"><strong>Discover</strong><a href="#marketplace" onClick={() => browse()}>Marketplace</a><a href="#suppliers">Suppliers</a><a href="#how-it-works">How it works</a></div>
+        <div className="footer-column"><strong>Discover</strong><a href="#marketplace" onClick={() => browse("All categories", "Products")}>Products</a><a href="#marketplace" onClick={() => browse("All categories", "Services")}>Services</a><a href="#suppliers">Suppliers</a><a href="#how-it-works">How it works</a><a href="#why-busineskal">About Busineskal</a><a href="#faq">Frequently asked questions</a></div>
         <div className="footer-column"><strong>Your account</strong><button onClick={() => openAccount("login")}>{account ? "My account" : "Sign in"}</button>{!account && <button onClick={() => openAccount("signup")}>Create an account</button>}<button onClick={openSeller}>Become a seller</button></div>
       </div><div className="container footer-bottom"><span>Busineskal. Good business starts with a connection.</span></div></footer>
       {modal?.type === "auth" ? <AccountDialog key={modal.mode} initialMode={modal.mode} account={account} onAccount={setAccount} close={() => setModal(null)} /> : modal && <Dialog modal={modal} close={() => setModal(null)} />}

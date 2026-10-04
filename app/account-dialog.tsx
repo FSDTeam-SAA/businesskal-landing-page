@@ -67,6 +67,10 @@ export default function AccountDialog({ initialMode, account, onAccount, close }
             {account.role === "seller" && <div><dt>Seller status</dt><dd>{account.vendorStatus || "pending"}</dd></div>}
           </dl>
           {account.role === "user" && <button className="button primary" onClick={() => switchMode("become-seller")}>Become a seller</button>}
+          {account.role === "seller" && account.vendorStatus === "approved" && process.env.NEXT_PUBLIC_SELLER_DASHBOARD_URL && <>
+            <a className="button primary" href={process.env.NEXT_PUBLIC_SELLER_DASHBOARD_URL}>Open seller dashboard</a>
+            <p className="fine-print">Sign in to the dashboard using your approved seller account.</p>
+          </>}
           <button className="button secondary" disabled={pending} onClick={logout}>{pending ? "Signing out..." : "Sign out"}</button>
         </div> : <>
           <p>{signup ? "Join as a buyer to discover suppliers, or apply as a seller to showcase your business." : business ? "Tell us about your business. Your application will be reviewed by an administrator." : mode === "login" ? "Buyers and approved sellers can sign in with their email and password." : mode === "forgot" ? "We will email you a password reset code." : "Use the code from your email to reset your password."}</p>
