@@ -147,8 +147,14 @@ function Brand({ light = false }: { light?: boolean }) {
       href="#top"
       aria-label="Busineskal home"
     >
-      <span className="brand-symbol" aria-hidden="true">b.</span>
-      <span className="brand-name">Busineskal</span>
+      <Image
+        className="brand-image"
+        src="/images/mansa-logo.png"
+        alt="MANSA"
+        width={196}
+        height={110}
+        unoptimized
+      />
     </a>
   );
 }
