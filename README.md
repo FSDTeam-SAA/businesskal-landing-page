@@ -1,4 +1,4 @@
-# Busineskal landing page
+# Mansa landing page
 
 Install dependencies with `npm ci`. Copy `.env.example` to `.env.local` and
 set `BACKEND_API_URL` to the Express backend's API prefix (for local development,

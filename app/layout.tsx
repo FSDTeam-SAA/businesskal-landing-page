@@ -14,9 +14,9 @@ const geistSans = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Busineskal — Products, Services & Business Suppliers",
+  title: "Mansa — Products, Services & Business Suppliers",
   description:
-    "Discover products, explore services, and meet your next business partner. Busineskal brings buyers and suppliers together in one marketplace.",
+    "Discover products, explore services, and meet your next business partner. Mansa brings buyers and suppliers together in one marketplace.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
