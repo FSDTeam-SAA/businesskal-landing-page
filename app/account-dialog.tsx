@@ -53,7 +53,7 @@ export default function AccountDialog({ initialMode, account, onAccount, close }
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Please try again."); }
     finally { setPending(false); }
   }
-  const title = finished ? "Your application is submitted." : mode === "account" ? "Your Busineskal account" : signup ? "Create your account" : mode === "become-seller" ? "Become a seller" : mode === "forgot" ? "Forgot your password?" : mode === "reset" ? "Choose a new password" : "Welcome back.";
+  const title = finished ? "Your application is submitted." : mode === "account" ? "Your Mansa account" : signup ? "Create your account" : mode === "become-seller" ? "Become a seller" : mode === "forgot" ? "Forgot your password?" : mode === "reset" ? "Choose a new password" : "Welcome back.";
   return <dialog ref={dialog} className="detail-dialog account-dialog" onCancel={close} onClick={(event) => { if (event.target === event.currentTarget) close(); }} aria-labelledby="account-title">
     <button className="icon-button dialog-close" aria-label="Close account dialog" onClick={close}>✕</button>
     <div className="dialog-body">

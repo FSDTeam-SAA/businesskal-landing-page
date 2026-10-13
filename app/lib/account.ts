@@ -29,8 +29,11 @@ export async function backendAccount(path: string, method = "GET", body?: unknow
   return result;
 }
 
-const accessCookie = "busineskal_access";
-const refreshCookie = "busineskal_refresh";
+const accessCookie = "mansa_access";
+const refreshCookie = "mansa_refresh";
+// Keep existing sessions usable while clients migrate to Mansa cookies.
+const legacyAccessCookie = "busineskal_access";
+const legacyRefreshCookie = "busineskal_refresh";
 export async function saveSession(data: { accessToken: string; refreshToken: string }) {
   if (!data.accessToken || !data.refreshToken) throw new AccountError(502, "The account service returned an incomplete session.");
   const jar = await cookies();
@@ -44,18 +47,22 @@ export async function saveSession(data: { accessToken: string; refreshToken: str
   };
   jar.set(accessCookie, data.accessToken, { ...options, maxAge: lifetime(data.accessToken, 3600) });
   jar.set(refreshCookie, data.refreshToken, { ...options, maxAge: lifetime(data.refreshToken, 14 * 86400) });
+  if (jar.has(legacyAccessCookie)) jar.delete(legacyAccessCookie);
+  if (jar.has(legacyRefreshCookie)) jar.delete(legacyRefreshCookie);
 }
 
 export async function clearSession() {
   const jar = await cookies();
   jar.delete(accessCookie);
   jar.delete(refreshCookie);
+  jar.delete(legacyAccessCookie);
+  jar.delete(legacyRefreshCookie);
 }
 
 export async function authenticatedAccount(path: string, method = "GET", body?: unknown) {
   const jar = await cookies();
-  let access = jar.get(accessCookie)?.value;
-  const refresh = jar.get(refreshCookie)?.value;
+  let access = jar.get(accessCookie)?.value ?? jar.get(legacyAccessCookie)?.value;
+  const refresh = jar.get(refreshCookie)?.value ?? jar.get(legacyRefreshCookie)?.value;
   if (access) {
     try { return await backendAccount(path, method, body, access); }
     catch (error) { if (!(error instanceof AccountError) || error.status !== 401) throw error; }

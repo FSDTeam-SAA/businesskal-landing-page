@@ -3,7 +3,7 @@
 import Image from "next/image";
 import AccountDialog, { type AccountMode } from "./account-dialog";
 import type { Account } from "./lib/account";
-import { ListingCollections, SellerPlans, WhyBusineskal } from "./landing-sections";
+import { ListingCollections, SellerPlans, WhyMansa } from "./landing-sections";
 import {
   useEffect,
   useRef,
@@ -145,7 +145,7 @@ function Brand({ light = false }: { light?: boolean }) {
     <a
       className={`brand ${light ? "brand-light" : ""}`}
       href="#top"
-      aria-label="Busineskal home"
+      aria-label="Mansa home"
     >
       <Image
         className="brand-image"
@@ -392,7 +392,7 @@ export default function Marketplace() {
               </h1>
               <p>
                 Discover suppliers, explore business services, and bring your
-                own business to Busineskal. One marketplace for your next move.
+                own business to Mansa. One marketplace for your next move.
               </p>
               <form className="hero-search" onSubmit={submitSearch}>
                 <label className="search-input">
@@ -854,10 +854,10 @@ export default function Marketplace() {
             </div>
           </div>
         </section>
-        <WhyBusineskal join={() => openAccount(account ? "account" : "signup")} sell={openSeller} />
+        <WhyMansa join={() => openAccount(account ? "account" : "signup")} sell={openSeller} />
         <section className="seller-section" id="seller">
           <div className="container seller-grid">
-            <div className="seller-copy"><span className="eyebrow">BUILD YOUR BUSINESS WITH BUSINESKAL</span>
+            <div className="seller-copy"><span className="eyebrow">BUILD YOUR BUSINESS WITH MANSA</span>
               <h2>Your business.<br />A bigger <span className="serif-accent">world.</span></h2>
               <p>Apply to join our marketplace as a product supplier or service provider. Already have a buyer account? Sign in and submit your business details.</p>
               <ul>{["Showcase your products and services", "Manage your shop from the seller dashboard", "Applications and listings reviewed before publication"].map((item) => <li key={item}><span><Icon name="check" size={15} /></span>{item}</li>)}</ul>
@@ -886,12 +886,12 @@ export default function Marketplace() {
             <div className="faq-list">
               {[
                 {
-                  q: "What is Busineskal?",
-                  a: "Busineskal is a marketplace designed to connect buyers with product suppliers and service providers. Explore offerings, find businesses, and build connections in one place.",
+                  q: "What is Mansa?",
+                  a: "Mansa is a marketplace designed to connect buyers with product suppliers and service providers. Explore offerings, find businesses, and build connections in one place.",
                 },
                 {
                   q: "Can I sell both products and services?",
-                  a: "Yes. Busineskal supports product suppliers and service providers. Apply as a seller with your business details; admin approval is required before seller sign-in.",
+                  a: "Yes. Mansa supports product suppliers and service providers. Apply as a seller with your business details; admin approval is required before seller sign-in.",
                 },
                 {
                   q: "How do I find the right supplier?",
@@ -942,9 +942,9 @@ export default function Marketplace() {
       </main>
       <footer className="site-footer"><div className="container footer-main">
         <div className="footer-brand"><Brand light /><p>Discover products and services. Meet suppliers. Build your next business connection.</p></div>
-        <div className="footer-column"><strong>Discover</strong><a href="#marketplace" onClick={() => browse("All categories", "Products")}>Products</a><a href="#marketplace" onClick={() => browse("All categories", "Services")}>Services</a><a href="#suppliers">Suppliers</a><a href="#how-it-works">How it works</a><a href="#why-busineskal">About Busineskal</a><a href="#faq">Frequently asked questions</a></div>
+        <div className="footer-column"><strong>Discover</strong><a href="#marketplace" onClick={() => browse("All categories", "Products")}>Products</a><a href="#marketplace" onClick={() => browse("All categories", "Services")}>Services</a><a href="#suppliers">Suppliers</a><a href="#how-it-works">How it works</a><a href="#why-mansa">About Mansa</a><a href="#faq">Frequently asked questions</a></div>
         <div className="footer-column"><strong>Your account</strong><button onClick={() => openAccount("login")}>{account ? "My account" : "Sign in"}</button>{!account && <button onClick={() => openAccount("signup")}>Create an account</button>}<button onClick={openSeller}>Become a seller</button></div>
-      </div><div className="container footer-bottom"><span>Busineskal. Good business starts with a connection.</span></div></footer>
+      </div><div className="container footer-bottom"><span>Mansa. Good business starts with a connection.</span></div></footer>
       {modal?.type === "auth" ? <AccountDialog key={modal.mode} initialMode={modal.mode} account={account} onAccount={setAccount} close={() => setModal(null)} /> : modal && <Dialog modal={modal} close={() => setModal(null)} />}
     </div>
   );

@@ -108,16 +108,24 @@ try {
   assert.equal(JSON.stringify(login.result).includes("accessToken"), false);
   assert.equal(JSON.stringify(login.result).includes("internalSecret"), false);
   assert.equal((await request("session", null, "GET")).result.data.role, "user");
+  // An existing pre-rebrand session must still refresh into Mansa cookies.
   jar.set("busineskal_access", "expired-access");
+  jar.set("busineskal_refresh", jar.get("mansa_refresh"));
+  jar.delete("mansa_access");
+  jar.delete("mansa_refresh");
   assert.equal((await request("session", null, "GET")).response.status, 200);
-  assert.notEqual(jar.get("busineskal_access"), "expired-access");
+  assert.ok(jar.has("mansa_access") && jar.has("mansa_refresh"));
+  assert.equal(jar.has("busineskal_access") || jar.has("busineskal_refresh"), false);
+  jar.set("mansa_access", "expired-access");
+  assert.equal((await request("session", null, "GET")).response.status, 200);
+  assert.notEqual(jar.get("mansa_access"), "expired-access");
   assert.equal((await request("become-seller", business, "POST", { Origin: "https://other.example" })).response.status, 403);
   assert.equal((await request("become-seller", business)).response.status, 200);
   assert.equal(jar.size, 0);
   assert.equal((await request("session", null, "GET")).response.status, 401);
   users.get("seller@example.com").vendorStatus = "approved";
   assert.equal((await request("login", { email: "seller@example.com", password: buyer.password })).response.status, 200);
-  jar.set("busineskal_access", "expired-access");
+  jar.set("mansa_access", "expired-access");
   assert.equal((await request("logout")).response.status, 200);
   assert.equal(jar.size, 0);
   assert.equal((await request("forgot", { email: buyer.email })).response.status, 200);
