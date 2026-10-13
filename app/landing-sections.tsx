@@ -38,8 +38,8 @@ export function ListingCollections({ listings, open, browse }: {
   </section>)}</>;
 }
 
-export function WhyBusineskal({ join, sell }: { join: () => void; sell: () => void }) {
-  return <section className="section value-section" id="why-busineskal"><div className="container">
+export function WhyMansa({ join, sell }: { join: () => void; sell: () => void }) {
+  return <section className="section value-section" id="why-mansa"><div className="container">
     <div className="section-heading"><div><span className="eyebrow">ONE MARKETPLACE. MORE WAYS TO GROW.</span><h2>Built around your business.</h2><p>Whether you are discovering an offering or bringing your own business online, start with the right information.</p></div></div>
     <div className="value-grid">{[
       { mark: "01", title: "Products & services", text: "Find physical products and professional services in one place, with clear categories and listing details." },
